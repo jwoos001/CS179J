@@ -120,9 +120,9 @@ void test () {
 	}
 }*/
 
-
+int input_counter = 0;
+unsigned char* input[2];
 unsigned char keypad_input = '0';
-unsigned char input_count = 0;
 const unsigned char* prompt = "Wire length:";
 
 unsigned long spool_timer = 0;
@@ -134,69 +134,60 @@ void wire_cutter()
 {
 	switch(state)
 	{
-		case WAIT:
+		case WAIT: //polling for input
 			delay_ms(150);
 			break;
-		case DISPLAY:
+		case DISPLAY: //update the LCD
 			LCD_DisplayString(1,prompt);
-			LCD_WriteData(keypad_input);
+			for(int i = 0; i < input_counter; i++)
+			{
+				LCD_WriteData(input[i]);
+			}
 			delay_ms(150);
 			break;
-		case SPOOL:
-			PORTA = 0x09;
-			delay_ms(3);
-			PORTA = 0x08;
-			delay_ms(3);
-			PORTA = 0x0C;
-			delay_ms(3);
-			PORTA = 0x04;
-			delay_ms(3);
-			PORTA = 0x06;
-			delay_ms(3);
-			PORTA = 0x02;
-			delay_ms(3);
-			PORTA = 0x03;
-			delay_ms(3);
-			PORTA = 0x01;
-			delay_ms(3);
+		case SPOOL: //roll the spool to the input
+			PORTA = 0x3D;
+			delay_ms(5);
+			PORTA = 0x34;
+			delay_ms(5);
 			spool_timer++;
 			break;
 		case BLADE_DOWN:
-			PORTA = 0x10;
-			delay_ms(3);
-			PORTA = 0x30;
-			delay_ms(3);
-			PORTA = 0x20;
-			delay_ms(3);
-			PORTA = 0x60;
-			delay_ms(3);
-			PORTA = 0x40;
-			delay_ms(3);
-			PORTA = 0xC0;
-			delay_ms(3);
-			PORTA = 0x80;
-			delay_ms(3);
-			PORTA = 0x90;
-			delay_ms(3);
+			PORTB = 0x01;
+			delay_ms(10);
+			PORTB = 0x03;
+			delay_ms(10);
+			PORTB = 0x02;
+			delay_ms(10);
+			PORTB = 0x06;
+			delay_ms(10);
+			PORTB = 0x04;
+			delay_ms(10);
+			PORTB = 0x0C;
+			delay_ms(10);
+			PORTB = 0x08;
+			delay_ms(10);
+			PORTB = 0x09;
+			delay_ms(10);
 			counter++;
 			break;
 		case BLADE_UP:
-			PORTA = 0x90;
-			delay_ms(3);
-			PORTA = 0x80;
-			delay_ms(3);
-			PORTA = 0xC0;
-			delay_ms(3);
-			PORTA = 0x40;
-			delay_ms(3);
-			PORTA = 0x60;
-			delay_ms(3);
-			PORTA = 0x20;
-			delay_ms(3);
-			PORTA = 0x30;
-			delay_ms(3);
-			PORTA = 0x10;
-			delay_ms(3);
+			PORTB = 0x09;
+			delay_ms(10);
+			PORTB = 0x08;
+			delay_ms(10);
+			PORTB = 0x0C;
+			delay_ms(10);
+			PORTB = 0x04;
+			delay_ms(10);
+			PORTB = 0x06;
+			delay_ms(10);
+			PORTB = 0x02;
+			delay_ms(10);
+			PORTB = 0x03;
+			delay_ms(10);
+			PORTB = 0x01;
+			delay_ms(10);
 			counter++;
 			break;
 	}
@@ -207,15 +198,43 @@ void wire_cutter()
 			{
 				if(GetKeypadKey() == '*')
 				{
-					length_timer = (keypad_input - '0') * 100;
+					unsigned char tens = input[0] - '0';
+					unsigned char ones = input[1] - '0';
+					length_timer = ((tens*10) + ones) * 35;
+					if(input_counter < 2)
+					{
+						length_timer = 0;
+					}
+					input[0] = '0';
+					input[1] = '0';
+					input_counter = 0;
 					state = SPOOL;
+				}
+				else if(GetKeypadKey() == '#')
+				{
+					input[0] = '0';
+					input[1] = '0';
+					input_counter = 0;
 				}
 				else
 				{
 					keypad_input = GetKeypadKey();
+					if(input_counter < 2)
+					{
+						input[input_counter] = keypad_input;
+						input_counter++;
+					}
 					state = DISPLAY;
 				}
 			}
+			else
+			{
+				state = WAIT;
+			}
+			/*if(PINB&0x10 == 0x10)
+			{
+				LCD_DisplayString(1, "Coin input received");
+			}*/
 			break;
 		case DISPLAY:
 			state = WAIT;
@@ -232,18 +251,17 @@ void wire_cutter()
 			}
 			break;
 		case BLADE_DOWN:
-			if(counter >= 50)
-			{
+			if(counter >= 40)		{
 				counter = 0;
 				state = BLADE_UP;
 			}
 			break;
 		case BLADE_UP:
-			if(counter >= 50)
+			if(counter >= 30)
 			{
 				counter = 0;
 				keypad_input = '\0';
-				state = WAIT;
+				state = DISPLAY;
 			}
 			break;
 	}
@@ -253,7 +271,7 @@ void wire_cutter()
 int main(void)
 {
 	DDRA = 0xFF; PORTA = 0x00;
-	DDRB = 0xFF; PORTB = 0x00;
+	DDRB = 0xEF; PORTB = 0x10;
 	DDRC = 0xF0; PORTC = 0x0F;
 	DDRD = 0xFF; PORTD = 0x00;
 	TimerSet(1);
@@ -268,4 +286,3 @@ int main(void)
 	}
 	return 0;
 }
-
