@@ -6,3 +6,6 @@ Overview
 
 This code receives input from a keypad and displays the input onto an LCD.  It then feeds out the inputted number
 in centimeters and cuts it.
+
+Video
+
